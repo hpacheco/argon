@@ -72,11 +72,8 @@ library
     , aeson
     , ansi-terminal
     , base              >=4.7 && <5
-    , bytestring
     , Cabal
-    , containers
     , directory
-    , filepath
     , ghc
     , ghc-boot
     , ghc-paths
@@ -87,7 +84,8 @@ library
     , pipes-group
     , pipes-safe
     , syb
-    , system-filepath
+
+  ghc-options: -threaded
 
 executable argon
   import:
@@ -102,6 +100,8 @@ executable argon
     , optparse-applicative
     , pipes                 >=4.1
     , pipes-safe            >=2.2
+
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N
 
 test-suite argon-test
   import:
@@ -121,7 +121,6 @@ test-suite argon-test
     , ghc
     , hspec
     , pipes
-    , pipes-safe
     , QuickCheck
 
   build-tool-depends: hspec-discover:hspec-discover >=2 && <3

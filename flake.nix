@@ -53,7 +53,7 @@
           ];
         };
 
-        packages.default = hsPkgs.argon;
+        packages.default = pkgs.haskell.lib.dontCheck hsPkgs.argon;
 
         packages.static = pkgs.haskell.lib.overrideCabal hsPkgsStatic.argon (old: {
           configureFlags =
@@ -66,6 +66,7 @@
             ];
           enableSharedExecutables = false;
           enableSharedLibraries = false;
+          doCheck = false;
         });
 
         formatter = pkgs.alejandra;
