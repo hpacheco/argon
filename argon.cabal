@@ -98,6 +98,7 @@ test-suite argon-test
                      , filepath
                      , pipes
                      , pipes-safe
+  build-tool-depends: hspec-discover:hspec-discover == 2.*
   ghc-options:         -Wall
                        -threaded -rtsopts -with-rtsopts=-N
                        

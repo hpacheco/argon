@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module ArgonSpec (spec)
@@ -9,12 +8,7 @@ import           Data.Aeson          (encode)
 import           Data.List           (sort)
 import           GHC.Stack           (HasCallStack)
 import           Text.Printf         (printf)
-#if __GLASGOW_HASKELL__ < 710
-import           Control.Applicative ((<$>), (<*>))
-#endif
-import qualified FastString          as GHC
 import           Pipes               (Producer, (>->), each)
-import qualified SrcLoc              as GHC
 import           System.Console.ANSI (Color (..), ConsoleIntensity(BoldIntensity), setSGRCode,
                                       SGR(SetColor, SetConsoleIntensity),
                                       ConsoleLayer(Foreground), ColorIntensity(Dull))
@@ -28,6 +22,8 @@ import qualified Pipes.Prelude       as P
 import           Data.Foldable       (traverse_)
 
 import           Argon
+import qualified GHC.Types.SrcLoc as GHC
+import qualified GHC.Data.FastString as GHC
 
 instance Arbitrary ComplexityBlock where
     arbitrary = (\a b c -> CC (a, b, c)) <$> arbitrary
@@ -123,10 +119,8 @@ spec = do
                       ]
         describe "extensions" $ do
 -- Not even GHC 7.8.4 is able to run the file below, so it's not an Argon bug
-#if __GLASGOW_HASKELL__ >= 710
             it "correctly applies CPP" $
                 "cpp-psyn.hs" `shouldAnalyze` Right []
-#endif
             it "applies CPP when needed" $
                 "cpp.hs" `shouldAnalyze` Right [CC (lo 5, "f", 4)]
             it "works with TemplateHaskell" $
@@ -150,17 +144,7 @@ spec = do
                 ["parse error (possibly incorrect indentation or mismatched brackets)"]
             it "catches syntax errors (missing CPP)" $
                 "missingcpp.hs" `shouldAnalyze`
-#if __GLASGOW_HASKELL__ < 800
-                    Left "1:2 lexical error at character 'i'"
-#else
                     Left "1:1 parse error on input \8216#\8217"
-#endif
-#if __GLASGOW_HASKELL__ < 800
--- The analysis of "missingmacros.hs" will succeed in newest GHC versions.
-            it "catches syntax errors (missing cabal macros)" $
-                "missingmacros.hs" `shouldContainErrors`
-                ["error: missing binary operator before token "]
-#endif
             it "catches syntax errors (missing include dir)" $
                 "missingincluded.hs" `shouldContainErrors`
                 ["fatal error", "necessaryInclude.h"]
@@ -186,12 +170,6 @@ spec = do
                         return $ defaultConfig { exts = loadedExts }))
                     `shouldAnalyzeC`
                     Right [CC (lo 4, "f", 1)]
-#if __GLASGOW_HASKELL__ < 800
-            it "includes Cabal macros for preprocessing" $
-                ( "missingmacros.hs"
-                , defaultConfig { headers = [path "cabal_macros.h"] }
-                ) `shouldAnalyzeC` Right [CC (lo 3, "f", 2)]
-#endif
             it "includes directory from include-dir for preprocessing" $
                 ( "missingincluded.hs"
                 , defaultConfig { includeDirs = [path "include"] }
@@ -298,7 +276,7 @@ spec = do
         describe "ToJSON instance" $ do
             it "is implemented by ComplexityResult" $
                 encode (CC ((1, 3), "f", 4)) `shouldBe`
-                    "{\"complexity\":4,\"name\":\"f\",\"lineno\":1,\"col\":3}"
+                    "{\"col\":3,\"complexity\":4,\"lineno\":1,\"name\":\"f\"}"
             it "is implemented by (FilePath, AnalysisResult)" $
                 encode ("f.hs" :: String, Right [] :: AnalysisResult)
                     `shouldBe`
@@ -306,19 +284,4 @@ spec = do
             it "is implemented by (FilePath, AnalysisResult) II" $
                 encode ("f.hs" :: String, Left "err" :: AnalysisResult)
                     `shouldBe`
-                    "{\"path\":\"f.hs\",\"type\":\"error\",\"message\":\"err\"}"
-#if 0
-    describe "Argon.Walker" $
-        describe "allFiles" $ do
-            it "traverses the filesystem depth-first" $
-                allFiles ("test" </> "tree") `shouldProduceS`
-                    [ "test" </> "tree" </> "sub"  </> "b.hs"
-                    , "test" </> "tree" </> "sub"  </> "c.hs"
-                    , "test" </> "tree" </> "sub2" </> "a.hs"
-                    , "test" </> "tree" </> "sub2" </> "e.hs"
-                    , "test" </> "tree" </> "a.hs"
-                    ]
-            it "includes starting files in the result" $
-                allFiles ("test" </> "tree" </> "a.hs") `shouldProduceS`
-                    ["test" </> "tree" </> "a.hs"]
-#endif
+                    "{\"message\":\"err\",\"path\":\"f.hs\",\"type\":\"error\"}"

@@ -64,7 +64,7 @@ visitExp (GHC.HsCase _ _ mg)      = length (GHC.unLoc . GHC.mg_alts $ mg) - 1
 visitExp _                      = 0
 
 visitOp :: Exp -> Int
-visitOp (GHC.OpApp _ (GHC.L _ (GHC.HsVar _ op)) _ _) =
+visitOp (GHC.OpApp _ _ (GHC.L _ (GHC.HsVar _ op)) _) =
     case getName (GHC.unLoc op) of
       "||" -> 1
       "&&" -> 1
