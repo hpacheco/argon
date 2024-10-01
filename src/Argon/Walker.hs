@@ -2,16 +2,12 @@
 module Argon.Walker (allFiles)
     where
 
--- import           Data.DirStream            (childOf)
 import           Data.List                 (isSuffixOf)
-import           Filesystem.Path.CurrentOS (decodeString, encodeString)
-import           Pipes                     (ListT (..), MonadIO, Producer, each,
+import           Pipes                     (ListT (..), Producer, each,
                                             every, liftIO, (>->))
 import qualified Pipes.Prelude             as P
 import           Pipes.Safe
-import           System.Directory          (doesDirectoryExist, doesFileExist,
-                                            pathIsSymbolicLink)
-import           System.FilePath           (takeExtension)
+import           System.Directory          (doesFileExist)
 import qualified System.FilePath.Glob as Glob
 
 -- | Starting from a path, generate a sequence of paths corresponding
