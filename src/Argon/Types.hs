@@ -1,13 +1,8 @@
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
-#if __GLASGOW_HASKELL__ < 710
-{-# LANGUAGE DeriveDataTypeable #-}
-#endif
 
 module Argon.Types (ComplexityBlock(CC), AnalysisResult, Config(..)
-                   , OutputMode(..), GhcParseError(..), defaultConfig)
+                   , OutputMode(..), GhcParseError(..), defaultConfig, Argon(..))
     where
 
 import Data.List (intercalate)
@@ -16,6 +11,7 @@ import Data.Typeable
 import Control.Exception (Exception)
 
 import Argon.Loc
+import Data.List.NonEmpty (NonEmpty)
 
 
 data GhcParseError = GhcParseError {
@@ -32,6 +28,11 @@ newtype ComplexityBlock = CC (Loc, String, Int)
 --   It can either be an error message or a list of
 --   'ComplexityBlock's.
 type AnalysisResult = Either String [ComplexityBlock]
+
+data Argon = Argon
+  { config :: Config
+  , paths :: NonEmpty FilePath
+  }
 
 -- | Type holding all the options passed from the command line.
 data Config = Config {

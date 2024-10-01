@@ -23,7 +23,6 @@ extra-source-files:
     stack.yaml
     README.md
     CHANGELOG.md
-    USAGE.txt
     test/data/*.hs
     test/data/*.h
     test/data/*.cabal
@@ -33,7 +32,27 @@ extra-source-files:
     test/tree/sub/*.hs
     test/tree/sub2/*.hs
 
+common common-extensions
+  default-extensions:
+    DataKinds
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    OverloadedRecordDot
+
+  default-language:   GHC2021
+
+common common-warnings
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wpartial-fields
+    -Wredundant-constraints -fhide-source-paths -fshow-hole-constraints
+    -Wunused-packages
+
 library
+  import:
+    common-warnings
+    , common-extensions
+
   hs-source-dirs:      src
   exposed-modules:     Argon
   other-modules:       Argon.Parser
@@ -65,25 +84,25 @@ library
                      , filepath
                      , microlens
                      , Glob
-  default-language:    GHC2021
-  ghc-options:         -Wall
-                       -Wcompat
-                       -Wincomplete-record-updates
-                       -Wincomplete-uni-patterns
-                       -Wredundant-constraints
 
 executable argon
+  import:
+    common-warnings
+    , common-extensions
+
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -Wall
   build-depends:       base             >=4.7    && <5
                      , argon            -any
-                     , docopt           >=0.7
+                     , optparse-applicative
                      , pipes            >=4.1
                      , pipes-safe       >=2.2
-  default-language:    GHC2021
 
 test-suite argon-test
+  import:
+    common-warnings
+    , common-extensions
+
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
@@ -99,10 +118,7 @@ test-suite argon-test
                      , pipes
                      , pipes-safe
   build-tool-depends: hspec-discover:hspec-discover == 2.*
-  ghc-options:         -Wall
-                       -threaded -rtsopts -with-rtsopts=-N
-                       
-  default-language:    GHC2021
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N
 
 source-repository head
   type:     git

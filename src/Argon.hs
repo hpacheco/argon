@@ -15,6 +15,7 @@ module Argon
     , OutputMode(..)
     , Config(..)
     , defaultConfig
+    , Argon(..)
     , Loc
     , LModule
     -- * Gathering source files
