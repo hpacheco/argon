@@ -26,18 +26,22 @@
         };
         hsPkgs = pkgs.haskellPackages.extend myOverlay;
 
-        fixGhc = pkg: pkg.override {    
-          enableRelocatedStaticLibs = true;
-          enableShared = false;
-          enableDwarf = false;
-        };
+        fixGhc = pkg:
+          pkg.override {
+            enableRelocatedStaticLibs = true;
+            enableShared = false;
+            enableDwarf = false;
+          };
 
-        hsPkgsStatic = (pkgsStatic.haskellPackages.override (old: {
-          ghc = fixGhc old.ghc;
-          buildHaskellPackages = old.buildHaskellPackages.override (oldBHP: {
-            ghc = fixGhc oldBHP.ghc;
-          });
-        })).extend myOverlay;
+        hsPkgsStatic =
+          (pkgsStatic.haskellPackages.override (old: {
+            ghc = fixGhc old.ghc;
+            buildHaskellPackages = old.buildHaskellPackages.override (oldBHP: {
+              ghc = fixGhc oldBHP.ghc;
+            });
+          }))
+          .extend
+          myOverlay;
       in {
         devShells.default = hsPkgs.shellFor {
           packages = p: [p.argon];
@@ -52,12 +56,14 @@
         packages.default = hsPkgs.argon;
 
         packages.static = pkgs.haskell.lib.overrideCabal hsPkgsStatic.argon (old: {
-          configureFlags = (old.configureFlags or [ ]) ++ [
-            "--ghc-option=-optl=-static"
-            "--extra-lib-dirs=${pkgsStatic.gmp6.override { withStatic = true; }}/lib"
-            "--extra-lib-dirs=${pkgsStatic.libffi.overrideAttrs (old: { dontDisableStatic = true; })}/lib"
-            "--extra-lib-dirs=${pkgsStatic.zlib.static}/lib"
-          ];
+          configureFlags =
+            (old.configureFlags or [])
+            ++ [
+              "--ghc-option=-optl=-static"
+              "--extra-lib-dirs=${pkgsStatic.gmp6.override {withStatic = true;}}/lib"
+              "--extra-lib-dirs=${pkgsStatic.libffi.overrideAttrs (old: {dontDisableStatic = true;})}/lib"
+              "--extra-lib-dirs=${pkgsStatic.zlib.static}/lib"
+            ];
           enableSharedExecutables = false;
           enableSharedLibraries = false;
         });

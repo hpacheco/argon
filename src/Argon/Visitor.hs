@@ -1,33 +1,35 @@
 {-# LANGUAGE DataKinds #-}
+
 module Argon.Visitor (funcsCC)
-    where
+where
 
-import           Argon.SYB.Utils (Stage (..), everythingStaged)
-import           Control.Arrow   ((&&&))
-import           Data.Generics   (Data, mkQ)
+import Argon.SYB.Utils (Stage (..), everythingStaged)
+import Control.Arrow ((&&&))
+import Data.Generics (Data, mkQ)
 
-import qualified GHC.Types.Name as GHC
-import qualified GHC
+import GHC qualified
+import GHC.Types.Name qualified as GHC
 
-import           Argon.Loc
-import           Argon.Types     (ComplexityBlock (..))
-import qualified GHC.Types.Name.Reader as GHC
+import Argon.Loc
+import Argon.Types (ComplexityBlock (..))
+import GHC.Types.Name.Reader qualified as GHC
 
 type Exp = GHC.HsExpr GHC.GhcPs
 type Function = GHC.HsBind GHC.GhcPs
 type MatchBody = GHC.LHsExpr GHC.GhcPs
 
 -- | Compute cyclomatic complexity of every function binding in the given AST.
-funcsCC :: (Data from) => from -> [ComplexityBlock]
+funcsCC :: Data from => from -> [ComplexityBlock]
 funcsCC = map funCC . getBinds
 
 funCC :: Function -> ComplexityBlock
 funCC f = CC (srcSpanToLoc $ GHC.getLocA $ GHC.fun_id f, getFuncName f, complexity f)
 
-getBinds :: (Data from) => from -> [Function]
+getBinds :: Data from => from -> [Function]
 getBinds = everythingStaged Parser (++) [] $ mkQ [] visit
-    where visit fun@GHC.FunBind {} = [fun]
-          visit _                  = []
+  where
+    visit fun@GHC.FunBind {} = [fun]
+    visit _ = []
 
 -- getLocation :: GHC.Located a -> Loc
 -- getLocation = srcSpanToLoc . GHC.getLoc
@@ -36,10 +38,11 @@ getFuncName :: Function -> String
 getFuncName = getName . GHC.unLoc . GHC.fun_id
 
 complexity :: Function -> Int
-complexity f = let matches = getMatches f
-                   query = everythingStaged Parser (+) 0 $ 0 `mkQ` visit
-                   visit = uncurry (+) . (visitExp &&& visitOp)
-                in length matches + sumWith getGRHSsFromMatch matches + sumWith query matches
+complexity f =
+  let matches = getMatches f
+      query = everythingStaged Parser (+) 0 $ 0 `mkQ` visit
+      visit = uncurry (+) . (visitExp &&& visitOp)
+   in length matches + sumWith getGRHSsFromMatch matches + sumWith query matches
 
 getMatches :: Function -> [GHC.LMatch GHC.GhcPs MatchBody]
 getMatches = GHC.unLoc . GHC.mg_alts . GHC.fun_matches
@@ -57,16 +60,16 @@ sumWith :: (a -> Int) -> [a] -> Int
 sumWith f = sum . map f
 
 visitExp :: Exp -> Int
-visitExp GHC.HsIf {}            = 1
+visitExp GHC.HsIf {} = 1
 visitExp (GHC.HsMultiIf _ alts) = length alts - 1
-visitExp (GHC.HsLamCase _ _ mg)     = length (GHC.unLoc . GHC.mg_alts $ mg) - 1
-visitExp (GHC.HsCase _ _ mg)      = length (GHC.unLoc . GHC.mg_alts $ mg) - 1
-visitExp _                      = 0
+visitExp (GHC.HsLamCase _ _ mg) = length (GHC.unLoc . GHC.mg_alts $ mg) - 1
+visitExp (GHC.HsCase _ _ mg) = length (GHC.unLoc . GHC.mg_alts $ mg) - 1
+visitExp _ = 0
 
 visitOp :: Exp -> Int
 visitOp (GHC.OpApp _ _ (GHC.L _ (GHC.HsVar _ op)) _) =
-    case getName (GHC.unLoc op) of
-      "||" -> 1
-      "&&" -> 1
-      _    -> 0
+  case getName (GHC.unLoc op) of
+    "||" -> 1
+    "&&" -> 1
+    _ -> 0
 visitOp _ = 0

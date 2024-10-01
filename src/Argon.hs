@@ -8,40 +8,44 @@
 --
 -- Programmatic interface to Argon.
 module Argon
-    (
-    -- * Types
-      AnalysisResult
-    , ComplexityBlock(CC)
-    , OutputMode(..)
-    , Config(..)
-    , defaultConfig
-    , Argon(..)
-    , Loc
-    , LModule
-    -- * Gathering source files
-    , allFiles
-    -- * Parsing
-    , analyze
-    , parseModule
-    , parseExts
-    -- * Manipulating results
-    , order
-    , filterResults
-    , filterNulls
-    , exportStream
-    -- * Formatting results
-    , bareTextFormatter
-    , coloredTextFormatter
-    -- * Utilities
-    , srcSpanToLoc
-    , locToString
-    , tagMsg
-    ) where
+  ( -- * Types
+    AnalysisResult
+  , ComplexityBlock (CC)
+  , OutputMode (..)
+  , Config (..)
+  , defaultConfig
+  , Argon (..)
+  , Loc
+  , LModule
 
-import Argon.Parser (LModule, analyze, parseModule)
-import Argon.Results (order, filterResults, filterNulls, exportStream)
+    -- * Gathering source files
+  , allFiles
+
+    -- * Parsing
+  , analyze
+  , parseModule
+  , parseExts
+
+    -- * Manipulating results
+  , order
+  , filterResults
+  , filterNulls
+  , exportStream
+
+    -- * Formatting results
+  , bareTextFormatter
+  , coloredTextFormatter
+
+    -- * Utilities
+  , srcSpanToLoc
+  , locToString
+  , tagMsg
+  ) where
+
 import Argon.Cabal (parseExts)
-import Argon.Types
-import Argon.Loc
-import Argon.Walker (allFiles)
 import Argon.Formatters (bareTextFormatter, coloredTextFormatter)
+import Argon.Loc
+import Argon.Parser (LModule, analyze, parseModule)
+import Argon.Results (exportStream, filterNulls, filterResults, order)
+import Argon.Types
+import Argon.Walker (allFiles)

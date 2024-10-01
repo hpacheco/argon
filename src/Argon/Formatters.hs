@@ -1,30 +1,36 @@
 {-# LANGUAGE LambdaCase #-}
-module Argon.Formatters (bareTextFormatter, coloredTextFormatter)
-    where
 
-import Text.Printf (printf)
+module Argon.Formatters (bareTextFormatter, coloredTextFormatter)
+where
+
 import System.Console.ANSI
+import Text.Printf (printf)
 
 import Pipes
-import qualified Pipes.Prelude as P
+import Pipes.Prelude qualified as P
 
-import Argon.Types
 import Argon.Loc
-
+import Argon.Types
 
 bareTextFormatter :: MonadIO m => Pipe (FilePath, AnalysisResult) String m ()
-bareTextFormatter = formatResult
+bareTextFormatter =
+  formatResult
     id
     ("\terror: " ++)
     (\(CC (l, func, cc)) -> printf "\t%s %s - %d" (locToString l) func cc)
 
 coloredTextFormatter :: MonadIO m => Pipe (FilePath, AnalysisResult) String m ()
-coloredTextFormatter = formatResult
+coloredTextFormatter =
+  formatResult
     (\name -> bold ++ name ++ reset)
     (printf "\t%serror%s: %s" (fore Red) reset)
-    (\(CC (l, func, cc)) -> printf "\t%s %s - %s" (locToString l)
-                                                  (coloredFunc func l)
-                                                  (coloredRank cc))
+    ( \(CC (l, func, cc)) ->
+        printf
+          "\t%s %s - %s"
+          (locToString l)
+          (coloredFunc func l)
+          (coloredRank cc)
+    )
 
 -- | ANSI bold color
 bold :: String
@@ -40,24 +46,30 @@ reset = setSGRCode []
 
 coloredFunc :: String -> Loc -> String
 coloredFunc f (_, c) = fore color ++ f ++ reset
-    where color = if c == 1 then Cyan else Magenta
+  where
+    color = if c == 1 then Cyan else Magenta
 
 coloredRank :: Int -> String
 coloredRank c = printf "%s%s (%d)%s" (fore color) rank c reset
-    where (color, rank)
-            | c <= 5    = (Green,  "A")
-            | c <= 10   = (Yellow, "B")
-            | otherwise = (Red,    "C")
+  where
+    (color, rank)
+      | c <= 5 = (Green, "A")
+      | c <= 10 = (Yellow, "B")
+      | otherwise = (Red, "C")
 
-formatResult :: (MonadIO m)
-             => (String -> String)            -- ^ The header formatter
-             -> (String -> String)            -- ^ The error formatter
-             -> (ComplexityBlock -> String)   -- ^ The single line formatter
-             -> Pipe (FilePath, AnalysisResult) String m ()
+formatResult
+  :: MonadIO m
+  => (String -> String)
+  -- ^ The header formatter
+  -> (String -> String)
+  -- ^ The error formatter
+  -> (ComplexityBlock -> String)
+  -- ^ The single line formatter
+  -> Pipe (FilePath, AnalysisResult) String m ()
 formatResult header errorF singleF = for cat $ \case
-    (path, Left err) -> do
-        yield $ header path
-        yield $ errorF err
-    (path, Right rs) -> do
-        yield $ header path
-        each rs >-> P.map singleF
+  (path, Left err) -> do
+    yield $ header path
+    yield $ errorF err
+  (path, Right rs) -> do
+    yield $ header path
+    each rs >-> P.map singleF

@@ -12,25 +12,26 @@ copyright:           2015 Michele Lacchia
 category:            Development, Static Analysis
 build-type:          Simple
 description:
-    Argon performs static analysis on your code in order to compute cyclomatic
-    complexity. It is a quantitative measure of the number of linearly
-    indipendent paths through the code.
-    .
-    The intended usage is through Argon's executable, which accepts a list of
-    files or directories to analyze. The data can be optionally exported to
-    JSON.
+  Argon performs static analysis on your code in order to compute cyclomatic
+  complexity. It is a quantitative measure of the number of linearly
+  indipendent paths through the code.
+  .
+  The intended usage is through Argon's executable, which accepts a list of
+  files or directories to analyze. The data can be optionally exported to
+  JSON.
+
 extra-source-files:
-    stack.yaml
-    README.md
-    CHANGELOG.md
-    test/data/*.hs
-    test/data/*.h
-    test/data/*.cabal
-    test/data/include/*.h
-    test/tree/*.hs
-    test/tree/*.txt
-    test/tree/sub/*.hs
-    test/tree/sub2/*.hs
+  CHANGELOG.md
+  README.md
+  stack.yaml
+  test/data/*.cabal
+  test/data/*.h
+  test/data/*.hs
+  test/data/include/*.h
+  test/tree/*.hs
+  test/tree/*.txt
+  test/tree/sub/*.hs
+  test/tree/sub2/*.hs
 
 common common-extensions
   default-extensions:
@@ -53,71 +54,77 @@ library
     common-warnings
     , common-extensions
 
-  hs-source-dirs:      src
-  exposed-modules:     Argon
-  other-modules:       Argon.Parser
-                       Argon.Visitor
-                       Argon.Results
-                       Argon.Formatters
-                       Argon.Types
-                       Argon.Preprocess
-                       Argon.Loc
-                       Argon.Cabal
-                       Argon.SYB.Utils
-                       Argon.Walker
-  build-depends:       base             >=4.7    && <5
-                     , ansi-terminal
-                     , aeson
-                     , bytestring
-                     , pipes
-                     , pipes-group
-                     , pipes-safe
-                     , pipes-bytestring
-                     , ghc
-                     , ghc-boot
-                     , ghc-paths
-                     , syb
-                     , Cabal
-                     , containers
-                     , directory
-                     , system-filepath
-                     , filepath
-                     , microlens
-                     , Glob
+  hs-source-dirs:  src
+  exposed-modules: Argon
+  other-modules:
+    Argon.Cabal
+    Argon.Formatters
+    Argon.Loc
+    Argon.Parser
+    Argon.Preprocess
+    Argon.Results
+    Argon.SYB.Utils
+    Argon.Types
+    Argon.Visitor
+    Argon.Walker
+
+  build-depends:
+    , aeson
+    , ansi-terminal
+    , base              >=4.7 && <5
+    , bytestring
+    , Cabal
+    , containers
+    , directory
+    , filepath
+    , ghc
+    , ghc-boot
+    , ghc-paths
+    , Glob
+    , microlens
+    , pipes
+    , pipes-bytestring
+    , pipes-group
+    , pipes-safe
+    , syb
+    , system-filepath
 
 executable argon
   import:
     common-warnings
     , common-extensions
 
-  hs-source-dirs:      app
-  main-is:             Main.hs
-  build-depends:       base             >=4.7    && <5
-                     , argon            -any
-                     , optparse-applicative
-                     , pipes            >=4.1
-                     , pipes-safe       >=2.2
+  hs-source-dirs: app
+  main-is:        Main.hs
+  build-depends:
+    , argon
+    , base                  >=4.7 && <5
+    , optparse-applicative
+    , pipes                 >=4.1
+    , pipes-safe            >=2.2
 
 test-suite argon-test
   import:
     common-warnings
     , common-extensions
 
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
-  main-is:             Spec.hs
-  other-modules:       ArgonSpec
-  build-depends:       base             >=4.7    && <5
-                     , argon
-                     , ansi-terminal
-                     , ghc
-                     , aeson
-                     , hspec
-                     , QuickCheck
-                     , filepath
-                     , pipes
-                     , pipes-safe
-  build-tool-depends: hspec-discover:hspec-discover == 2.*
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Spec.hs
+  other-modules:      ArgonSpec
+  build-depends:
+    , aeson
+    , ansi-terminal
+    , argon
+    , base           >=4.7 && <5
+    , filepath
+    , ghc
+    , hspec
+    , pipes
+    , pipes-safe
+    , QuickCheck
+
+  build-tool-depends: hspec-discover:hspec-discover >=2 && <3
   ghc-options:        -threaded -rtsopts -with-rtsopts=-N
 
 source-repository head

@@ -2,11 +2,12 @@
 -- nominolo/ghc-syb. Argon will use the original ghc-syb when a new version
 -- is released on Hackage with @alanz's fixes.
 {-# LANGUAGE RankNTypes #-}
-module Argon.SYB.Utils (Stage(..), everythingStaged)
-    where
 
-import GHC
+module Argon.SYB.Utils (Stage (..), everythingStaged)
+where
+
 import Data.Generics
+import GHC
 import GHC.Types.Name.Set (NameSet)
 
 -- | Ghc Ast types tend to have undefined holes, to be filled
@@ -18,8 +19,13 @@ data Stage = Parser | Renamer | TypeChecker deriving (Eq, Ord, Show)
 --   generated the Ast.
 everythingStaged :: Stage -> (r -> r -> r) -> r -> GenericQ r -> GenericQ r
 everythingStaged stage k z f x
-  | (const False
-      `extQ` fixity `extQ` nameSet) x = z
+  | ( const False
+        `extQ` fixity
+        `extQ` nameSet
+    )
+      x =
+      z
   | otherwise = foldl k (f x) (gmapQ (everythingStaged stage k z f) x)
-  where nameSet    = const (stage `elem` [Parser,TypeChecker]) :: NameSet -> Bool
-        fixity     = const (stage < Renamer)                   :: GHC.Fixity -> Bool
+  where
+    nameSet = const (stage `elem` [Parser, TypeChecker]) :: NameSet -> Bool
+    fixity = const (stage < Renamer) :: GHC.Fixity -> Bool
