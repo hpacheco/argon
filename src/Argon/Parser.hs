@@ -6,26 +6,26 @@ import Control.Monad (void)
 import qualified Control.Exception as E
 
 import qualified GHC hiding (parseModule)
-import qualified SrcLoc       as GHC
-import qualified Lexer        as GHC
-import qualified Parser       as GHC
-import qualified DynFlags     as GHC
 import qualified GHC.LanguageExtensions as GHC
-import qualified HeaderInfo   as GHC
-import qualified MonadUtils   as GHC
-import qualified Outputable   as GHC
-import qualified FastString   as GHC
-import qualified StringBuffer as GHC
 import GHC.Paths (libdir)
 
 import Argon.Preprocess
 import Argon.Visitor (funcsCC)
 import Argon.Types
 import Argon.Loc
+import qualified GHC.Parser.Lexer as GHC
+import qualified GHC.Utils.Logger as GHC
+import Control.Monad.IO.Class (liftIO)
+import qualified GHC.Plugins as GHC
+import qualified GHC.Data.StringBuffer as GHC
+import qualified GHC.Driver.Config.Parser as GHC
+import qualified GHC.Parser
+import qualified GHC.Parser.Header as GHC
+import GHC.Utils.Error (MessageClass(..))
 
 -- | Type synonym for a syntax node representing a module tagged with a
 --   'SrcSpan'
-type LModule = GHC.Located (GHC.HsModule GHC.RdrName)
+type LModule = GHC.Located (GHC.HsModule GHC.GhcPs)
 
 
 -- | Parse the code in the given filename and compute cyclomatic complexity for
@@ -66,39 +66,40 @@ parseModuleWithCpp conf cppOptions file =
         if useCpp
            then getPreprocessedSrcDirect cppOptions file
            else do
-               contents <- GHC.liftIO $ readFile file
+               contents <- liftIO $ readFile file
                return (contents, dflags)
       return $
         case parseCode dflags1 file fileContents of
-          GHC.PFailed ss m -> Left $ tagMsg (srcSpanToLoc ss)
-                                            (GHC.showSDoc dflags m)
+          GHC.PFailed ps -> Left $ tagMsg (srcSpanToLoc $ GHC.mkSrcSpanPs (GHC.last_loc ps))
+                                            (GHC.showSDoc dflags (GHC.ppr $ GHC.getPsMessages ps))
           GHC.POk _ pmod   -> Right pmod
 
 parseCode :: GHC.DynFlags -> FilePath -> String -> GHC.ParseResult LModule
-parseCode = runParser GHC.parseModule
+parseCode = runParser GHC.Parser.parseModule
 
 runParser :: GHC.P a -> GHC.DynFlags -> FilePath -> String -> GHC.ParseResult a
 runParser parser flags filename str = GHC.unP parser parseState
     where location   = GHC.mkRealSrcLoc (GHC.mkFastString filename) 1 1
           buffer     = GHC.stringToStringBuffer str
-          parseState = GHC.mkPState flags buffer location
+          parseState = GHC.initParserState (GHC.initParserOpts flags) buffer location
 
 initDynFlags :: GHC.GhcMonad m => Config -> FilePath -> m GHC.DynFlags
 initDynFlags conf file = do
     dflags0 <- GHC.getSessionDynFlags
     (dflags1,_,_) <- GHC.parseDynamicFlagsCmdLine dflags0
         [GHC.L GHC.noSrcSpan ("-X" ++ e) | e <- exts conf]
-    src_opts <- GHC.liftIO $ GHC.getOptionsFromFile dflags1 file
-    (dflags2, _, _) <- GHC.parseDynamicFilePragma dflags1 src_opts
-    let dflags3 = dflags2 { GHC.log_action = customLogAction }
-    void $ GHC.setSessionDynFlags dflags3
-    return dflags3
+    src_opts <- GHC.liftIO $ GHC.getOptionsFromFile (GHC.initParserOpts dflags1) file
+    (dflags2, _, _) <- GHC.parseDynamicFilePragma dflags1 (snd src_opts)
+    GHC.pushLogHookM (const customLogAction)
+    -- let dflags3 = dflags2 { GHC.log_action = customLogAction }
+    void $ GHC.setSessionDynFlags dflags2
+    return dflags2
 
 customLogAction :: GHC.LogAction
-customLogAction dflags _ severity srcSpan _ m =
+customLogAction logFlags (MCDiagnostic severity _ _) srcSpan m =
     case severity of
-      GHC.SevFatal -> throwError
       GHC.SevError -> throwError
       _            -> return ()
     where throwError = E.throwIO $ GhcParseError (srcSpanToLoc srcSpan)
-                                                 (GHC.showSDoc dflags m)
+                                                 (GHC.renderWithContext (GHC.log_default_user_context logFlags) m)
+customLogAction _ _ _ _ = error "impossible?"

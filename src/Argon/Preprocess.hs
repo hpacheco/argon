@@ -11,15 +11,15 @@ module Argon.Preprocess
    , getPreprocessedSrcDirect
    ) where
 
-#if __GLASGOW_HASKELL__ < 710
-import Control.Applicative ((<$>))
-#endif
+import qualified GHC.Driver.Env.Types as GHC
 import qualified GHC
-import qualified DynFlags       as GHC
-import qualified MonadUtils     as GHC
-import qualified DriverPhases   as GHC
-import qualified DriverPipeline as GHC
-import qualified HscTypes       as GHC
+import qualified GHC.Settings as GHC
+import Lens.Micro (Lens')
+import qualified Lens.Micro as Lens
+import Control.Monad.IO.Class (liftIO)
+import qualified GHC.Driver.Phases as GHC
+import qualified GHC.Driver.Pipeline as GHC
+import qualified GHC.Types.SourceFile as GHC
 
 data CppOptions = CppOptions
                 { cppDefine :: [String]    -- ^ CPP #define macros
@@ -31,7 +31,7 @@ data CppOptions = CppOptions
 defaultCppOptions :: CppOptions
 defaultCppOptions = CppOptions [] [] []
 
-getPreprocessedSrcDirect :: (GHC.GhcMonad m)
+getPreprocessedSrcDirect :: (GHC.GhcMonad m, MonadFail m)
                          => CppOptions
                          -> FilePath
                          -> m (String, GHC.DynFlags)
@@ -39,9 +39,9 @@ getPreprocessedSrcDirect cppOptions file = do
   hscEnv <- GHC.getSession
   let dfs = GHC.hsc_dflags hscEnv
       newEnv = hscEnv { GHC.hsc_dflags = injectCppOptions cppOptions dfs }
-  (dflags', hspp_fn) <-
-      GHC.liftIO $ GHC.preprocess newEnv (file, Just (GHC.Cpp GHC.HsSrcFile))
-  txt <- GHC.liftIO $ readFile hspp_fn
+  Right (dflags', hspp_fn) <-
+      liftIO $ GHC.preprocess newEnv file Nothing (Just (GHC.Cpp GHC.HsSrcFile))
+  txt <- liftIO $ readFile hspp_fn
   return (txt, dflags')
 
 injectCppOptions :: CppOptions -> GHC.DynFlags -> GHC.DynFlags
@@ -53,8 +53,11 @@ injectCppOptions CppOptions{..} dflags =
     mkIncludeDir = ("-I" ++)
     mkInclude    = ("-include" ++)
 
-addOptP :: String -> GHC.DynFlags -> GHC.DynFlags
-addOptP f = alterSettings (\s -> s { GHC.sOpt_P   = f : GHC.sOpt_P s})
+toolSettings :: Lens' GHC.DynFlags GHC.ToolSettings
+toolSettings = Lens.lens GHC.toolSettings (\dflags ts -> dflags { GHC.toolSettings = ts })
 
-alterSettings :: (GHC.Settings -> GHC.Settings) -> GHC.DynFlags -> GHC.DynFlags
-alterSettings f dflags = dflags { GHC.settings = f (GHC.settings dflags) }
+optP :: Lens' GHC.ToolSettings [String]
+optP = Lens.lens GHC.toolSettings_opt_P (\ts opts -> ts { GHC.toolSettings_opt_P = opts })
+
+addOptP :: String -> GHC.DynFlags -> GHC.DynFlags
+addOptP f = Lens.over (toolSettings . optP) (f :)

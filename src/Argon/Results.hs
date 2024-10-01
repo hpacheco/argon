@@ -15,10 +15,10 @@ import Pipes
 import Pipes.Group
 import qualified Pipes.Prelude as P
 import qualified Pipes.ByteString as PB
-import Lens.Simple ((^.))
 
 import Argon.Formatters
 import Argon.Types
+import Lens.Micro ((^.))
 
 
 -- sortOn is built-in only in base 4.8.0.0 onwards
