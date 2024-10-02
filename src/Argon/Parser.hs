@@ -6,9 +6,7 @@ where
 import Control.Exception qualified as E
 import Control.Monad (void)
 
-import GHC qualified hiding (parseModule)
 import GHC.LanguageExtensions qualified as GHC
-import GHC.Paths (libdir)
 
 import Argon.Loc
 import Argon.Preprocess
@@ -20,9 +18,18 @@ import GHC.Driver.Config.Parser qualified as GHC
 import GHC.Parser qualified
 import GHC.Parser.Header qualified as GHC
 import GHC.Parser.Lexer qualified as GHC
-import GHC.Plugins qualified as GHC
 import GHC.Utils.Error (MessageClass (..))
 import GHC.Utils.Logger qualified as GHC
+import qualified GHC.Types.SrcLoc as GHC
+import qualified Language.Haskell.Syntax as GHC
+import qualified GHC.Hs.Extension as GHC
+import qualified GHC.Driver.DynFlags as GHC
+import qualified GHC.Types.Error as GHC
+import Language.Haskell.GhclibParserEx.GHC.Parser qualified as GHC.Parser
+import qualified GHC.Utils.Outputable as GHC
+import qualified GHC.Driver.Ppr as GHC
+import Data.Maybe (mapMaybe)
+import qualified Language.Haskell.GhclibParserEx.GHC.Driver.Session as GhclibParserEx
 
 -- | Type synonym for a syntax node representing a module tagged with a
 --   'SrcSpan'
@@ -67,48 +74,53 @@ parseModuleWithCpp
   -> CppOptions
   -> FilePath
   -> IO (Either String LModule)
-parseModuleWithCpp conf cppOptions file =
-  GHC.runGhc (Just libdir) $ do
-    dflags <- initDynFlags conf file
-    let useCpp = GHC.xopt GHC.Cpp dflags
-    (fileContents, dflags1) <-
-      if useCpp
-        then getPreprocessedSrcDirect cppOptions file
-        else do
-          contents <- liftIO $ readFile file
-          return (contents, dflags)
-    return $
-      case parseCode dflags1 file fileContents of
-        GHC.PFailed ps ->
-          Left $
-            tagMsg
-              (srcSpanToLoc $ GHC.mkSrcSpanPs (GHC.last_loc ps))
-              (GHC.showSDoc dflags (GHC.ppr $ GHC.getPsMessages ps))
-        GHC.POk _ pmod -> Right pmod
+parseModuleWithCpp conf cppOptions file = do
+    str <- readFile file
+    eDflags <- setExtensions (mapMaybe GhclibParserEx.readExtension conf.exts, []) file str
+    case eDflags of
+      Left err -> error err
+      Right dflags -> do
+        let useCpp = GHC.xopt GHC.Cpp dflags
+        str' <-
+          if useCpp
+            then getPreprocessedSrc cppOptions file str
+            else pure str
+        eDflags' <- setExtensions (mapMaybe GhclibParserEx.readExtension conf.exts, []) file str'
+        case eDflags' of
+          Left err -> error err
+          Right dflags' -> do
+            return $
+              case parseCode dflags' file str' of
+                GHC.PFailed ps ->
+                  Left $
+                    tagMsg
+                      (srcSpanToLoc $ GHC.mkSrcSpanPs (GHC.last_loc ps))
+                      (GHC.showSDoc dflags (GHC.ppr $ GHC.getPsMessages ps))
+                GHC.POk _ pmod -> Right pmod
 
 parseCode :: GHC.DynFlags -> FilePath -> String -> GHC.ParseResult LModule
-parseCode = runParser GHC.Parser.parseModule
+parseCode flags file = GHC.Parser.parseFile file flags
 
-runParser :: GHC.P a -> GHC.DynFlags -> FilePath -> String -> GHC.ParseResult a
-runParser parser flags filename str = GHC.unP parser parseState
-  where
-    location = GHC.mkRealSrcLoc (GHC.mkFastString filename) 1 1
-    buffer = GHC.stringToStringBuffer str
-    parseState = GHC.initParserState (GHC.initParserOpts flags) buffer location
+-- runParser :: GHC.P a -> GHC.DynFlags -> FilePath -> String -> GHC.ParseResult a
+-- runParser parser flags filename str = GHC.unP parser parseState
+--   where
+--     location = GHC.mkRealSrcLoc (GHC.mkFastString filename) 1 1
+--     buffer = GHC.stringToStringBuffer str
+--     parseState = GHC.initParserState (GHC.initParserOpts flags) buffer location
 
-initDynFlags :: GHC.GhcMonad m => Config -> FilePath -> m GHC.DynFlags
-initDynFlags conf file = do
-  dflags0 <- GHC.getSessionDynFlags
-  (dflags1, _, _) <-
-    GHC.parseDynamicFlagsCmdLine
-      dflags0
-      [GHC.L GHC.noSrcSpan ("-X" ++ e) | e <- exts conf]
-  src_opts <- GHC.liftIO $ GHC.getOptionsFromFile (GHC.initParserOpts dflags1) file
-  (dflags2, _, _) <- GHC.parseDynamicFilePragma dflags1 (snd src_opts)
-  GHC.pushLogHookM (const customLogAction)
-  -- let dflags3 = dflags2 { GHC.log_action = customLogAction }
-  void $ GHC.setSessionDynFlags dflags2
-  return dflags2
+-- initDynFlags :: GHC.GhcMonad m => Config -> FilePath -> m GHC.DynFlags
+-- initDynFlags conf file = do
+--   dflags0 <- GHC.getSessionDynFlags
+--   (dflags1, _, _) <-
+--     GHC.parseDynamicFlagsCmdLine
+--       dflags0
+--       [GHC.L GHC.noSrcSpan ("-X" ++ e) | e <- exts conf]
+--   src_opts <- GHC.liftIO $ GHC.getOptionsFromFile (GHC.initParserOpts dflags1) file
+--   (dflags2, _, _) <- GHC.parseDynamicFilePragma dflags1 (snd src_opts)
+--   GHC.pushLogHookM (const customLogAction)
+--   -- let dflags3 = dflags2 { GHC.log_action = customLogAction }
+--   void $ GHC.setSessionDynFlags dflags2
+--   return dflags2
 
 customLogAction :: GHC.LogAction
 customLogAction logFlags (MCDiagnostic severity _ _) srcSpan m =

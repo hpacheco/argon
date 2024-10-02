@@ -145,12 +145,14 @@ spec = do
             it "catches syntax errors (missing CPP)" $
                 "missingcpp.hs" `shouldAnalyze`
                     Left "1:1 parse error on input \8216#\8217"
-            it "catches syntax errors (missing include dir)" $
-                "missingincluded.hs" `shouldContainErrors`
-                ["fatal error", "necessaryInclude.h"]
-            it "catches CPP parsing errors" $
-                 "cpp-error.hs" `shouldContainErrors`
-                 ["error: unterminated"]
+            -- These two are not errors anymore, cpphs gracefully continues
+            -- doing its thing after warning about the bad CPP code
+            -- it "catches syntax errors (missing include dir)" $
+            --     "missingincluded.hs" `shouldContainErrors`
+            --     ["fatal error", "necessaryInclude.h"]
+            -- it "catches CPP parsing errors" $
+            --      "cpp-error.hs" `shouldContainErrors`
+            --      ["error: unterminated"]
         describe "config" $ do
             it "reads default extensions from Cabal file" $
                 ("missingcpp.hs", unsafePerformIO

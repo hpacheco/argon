@@ -72,11 +72,11 @@ library
     , aeson
     , ansi-terminal
     , base              >=4.7 && <5
+    , cpphs
     , Cabal
     , directory
-    , ghc
-    , ghc-boot
-    , ghc-paths
+    , ghc-lib-parser
+    , ghc-lib-parser-ex
     , Glob
     , microlens
     , pipes
@@ -118,7 +118,7 @@ test-suite argon-test
     , argon
     , base           >=4.7 && <5
     , filepath
-    , ghc
+    , ghc-lib-parser
     , hspec
     , pipes
     , QuickCheck

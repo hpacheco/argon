@@ -7,12 +7,16 @@ import Argon.SYB.Utils (Stage (..), everythingStaged)
 import Control.Arrow ((&&&))
 import Data.Generics (Data, mkQ)
 
-import GHC qualified
 import GHC.Types.Name qualified as GHC
 
 import Argon.Loc
 import Argon.Types (ComplexityBlock (..))
 import GHC.Types.Name.Reader qualified as GHC
+import qualified Language.Haskell.Syntax as GHC
+import qualified GHC.Hs.Extension as GHC
+import qualified GHC.Types.SrcLoc as GHC
+import qualified GHC.Parser.Annotation as GHC
+import GHC.Hs.Instances ()
 
 type Exp = GHC.HsExpr GHC.GhcPs
 type Function = GHC.HsBind GHC.GhcPs
@@ -62,7 +66,8 @@ sumWith f = sum . map f
 visitExp :: Exp -> Int
 visitExp GHC.HsIf {} = 1
 visitExp (GHC.HsMultiIf _ alts) = length alts - 1
-visitExp (GHC.HsLamCase _ _ mg) = length (GHC.unLoc . GHC.mg_alts $ mg) - 1
+visitExp (GHC.HsLam _ GHC.LamCase mg) = length (GHC.unLoc . GHC.mg_alts $ mg) - 1
+visitExp (GHC.HsLam _ GHC.LamCases mg) = length (GHC.unLoc . GHC.mg_alts $ mg) - 1
 visitExp (GHC.HsCase _ _ mg) = length (GHC.unLoc . GHC.mg_alts $ mg) - 1
 visitExp _ = 0
 
