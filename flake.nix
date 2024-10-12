@@ -24,7 +24,7 @@
         myOverlay = pkgs.haskell.lib.compose.packageSourceOverrides {
           argon = ./.;
         };
-        hsPkgs = pkgs.haskellPackages.extend myOverlay;
+        hsPkgs = pkgs.haskell.packages.ghc910.extend myOverlay;
 
         fixGhc = pkg:
           pkg.override {
@@ -34,7 +34,7 @@
           };
 
         hsPkgsStatic =
-          (pkgsStatic.haskellPackages.override (old: {
+          (pkgsStatic.haskell.packages.ghc910.override (old: {
             ghc = fixGhc old.ghc;
             buildHaskellPackages = old.buildHaskellPackages.override (oldBHP: {
               ghc = fixGhc oldBHP.ghc;
