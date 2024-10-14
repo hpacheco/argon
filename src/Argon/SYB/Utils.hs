@@ -7,8 +7,8 @@ module Argon.SYB.Utils (Stage (..), everythingStaged)
 where
 
 import Data.Generics
+import GHC.Types.Fixity qualified as GHC
 import GHC.Types.Name.Set (NameSet)
-import qualified GHC.Types.Fixity as GHC
 
 -- | Ghc Ast types tend to have undefined holes, to be filled
 --   by later compiler phases. We tag Asts with their source,

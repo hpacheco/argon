@@ -71,17 +71,17 @@ library
   build-depends:
     , aeson
     , ansi-terminal
-    , base              >=4.7 && <5
+    , base               >=4.7 && <5
     , bytestring
-    , cpphs
     , Cabal
+    , cpphs
     , directory
     , ghc-lib-parser
     , ghc-lib-parser-ex
     , Glob
     , syb
 
-  ghc-options: -threaded
+  ghc-options:     -threaded
 
 executable argon
   import:
@@ -95,7 +95,7 @@ executable argon
     , base                  >=4.7 && <5
     , optparse-applicative
 
-  ghc-options:        -threaded -rtsopts -with-rtsopts=-N
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
 
 test-suite argon-test
   import:
@@ -110,7 +110,7 @@ test-suite argon-test
     , aeson
     , ansi-terminal
     , argon
-    , base           >=4.7 && <5
+    , base            >=4.7 && <5
     , filepath
     , ghc-lib-parser
     , hspec

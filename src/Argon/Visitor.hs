@@ -11,12 +11,12 @@ import GHC.Types.Name qualified as GHC
 
 import Argon.Loc
 import Argon.Types (ComplexityBlock (..))
-import GHC.Types.Name.Reader qualified as GHC
-import qualified Language.Haskell.Syntax as GHC
-import qualified GHC.Hs.Extension as GHC
-import qualified GHC.Types.SrcLoc as GHC
-import qualified GHC.Parser.Annotation as GHC
+import GHC.Hs.Extension qualified as GHC
 import GHC.Hs.Instances ()
+import GHC.Parser.Annotation qualified as GHC
+import GHC.Types.Name.Reader qualified as GHC
+import GHC.Types.SrcLoc qualified as GHC
+import Language.Haskell.Syntax qualified as GHC
 
 type Exp = GHC.HsExpr GHC.GhcPs
 type Function = GHC.HsBind GHC.GhcPs
