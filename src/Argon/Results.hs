@@ -6,20 +6,15 @@ where
 
 import Data.List (sortBy)
 import Data.Ord (comparing)
-import Data.String (IsString)
 #if __GLASGOW_HASKELL__ < 710
 import Control.Applicative ((<*), (*>))
 #endif
 
-import Data.Aeson (encode)
-import Pipes
-import Pipes.ByteString qualified as PB
-import Pipes.Group
-import Pipes.Prelude qualified as P
+import Data.Aeson qualified as Aeson
 
 import Argon.Formatters
 import Argon.Types
-import Lens.Micro ((^.))
+import Data.ByteString.Lazy.Char8 qualified as BSL
 
 -- sortOn is built-in only in base 4.8.0.0 onwards
 sortOn :: Ord b => (a -> b) -> [a] -> [a]
@@ -55,24 +50,11 @@ filterResults o (s, Right rs) =
 -- | Export analysis' results. How to export the data is defined by the
 --   'Config' parameter.
 exportStream
-  :: MonadIO m
-  => Config
-  -> Producer (FilePath, AnalysisResult) m ()
-  -> Effect m ()
+  :: Config
+  -> [(FilePath, AnalysisResult)]
+  -> IO ()
 exportStream conf source =
   case outputMode conf of
-    BareText -> source >-> bareTextFormatter >-> P.stdoutLn
-    Colored -> source >-> coloredTextFormatter >-> P.stdoutLn
-    JSON ->
-      jsonStream (source >-> P.map encode)
-        >-> for cat (\i -> PB.fromLazy i >-> PB.stdout)
-
-jsonStream
-  :: MonadIO m
-  => IsString a
-  => Producer a m ()
-  -> Producer a m ()
-jsonStream source = yield "[" *> intersperse' "," source <* yield "]\n"
-
-intersperse' :: Monad m => a -> Producer a m r -> Producer a m r
-intersperse' a producer = intercalates (yield a) (producer ^. chunksOf 1)
+    BareText -> putStrLn . unlines $ bareTextFormatter source
+    Colored -> putStrLn . unlines $ coloredTextFormatter source
+    JSON -> BSL.putStrLn $ Aeson.encode source

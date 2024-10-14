@@ -1,32 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Argon.Walker (allFiles)
-where
+module Argon.Walker (allFiles) where
 
-import Data.List (isSuffixOf)
-import Pipes
-  ( ListT (..)
-  , Producer
-  , each
-  , every
-  , liftIO
-  , (>->)
-  )
-import Pipes.Prelude qualified as P
-import Pipes.Safe
+import Control.Monad (guard)
 import System.Directory (doesFileExist)
 import System.FilePath.Glob qualified as Glob
 
 -- | Starting from a path, generate a sequence of paths corresponding
 --   to Haskell files. The filesystem is traversed depth-first.
-allFiles :: MonadSafe m => FilePath -> Producer FilePath m ()
+allFiles :: FilePath -> IO [FilePath]
 allFiles path = do
-  isFile <- liftIO $ doesFileExist path
+  isFile <- doesFileExist path
   if isFile
-    then each [path] >-> P.filter (".hs" `isSuffixOf`)
-    else every $ hsFilesIn path
+    then do
+      guard $ Glob.match "*.hs" path
+      pure [path]
+    else hsFilesIn path
 
-hsFilesIn :: MonadSafe m => FilePath -> ListT m FilePath
-hsFilesIn path = do
-  fps <- liftIO $ Glob.globDir1 (Glob.compile "**/*.hs") path
-  Select $ each fps
+hsFilesIn :: FilePath -> IO [FilePath]
+hsFilesIn path = Glob.globDir1 (Glob.compile "**/*.hs") path

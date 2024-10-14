@@ -2,9 +2,6 @@ module Main where
 
 import Control.Monad (forM_)
 import Options.Applicative qualified as Opt
-import Pipes
-import Pipes.Prelude qualified as P
-import Pipes.Safe (runSafeT)
 
 import Argon
 import Control.Applicative ((<|>))
@@ -87,12 +84,10 @@ main = do
   exts <- concat <$> traverse parseExts argon'.config.exts
   let argon = argon' {config = argon'.config {exts = exts}}
   forM_ argon.paths $ \path -> do
-    let source =
-          allFiles path
-            >-> P.mapM (liftIO . analyze argon.config)
-            >-> P.map (filterResults argon.config)
-            >-> P.filter filterNulls
-    runSafeT $ runEffect $ exportStream argon.config source
+    sourceFiles <- allFiles path
+    analysisResults <- traverse (analyze argon.config) sourceFiles
+    let filteredResults = filter filterNulls . map (filterResults argon.config) $ analysisResults
+    exportStream argon.config filteredResults
   where
     opts =
       Opt.info

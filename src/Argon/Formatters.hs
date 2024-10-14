@@ -1,25 +1,19 @@
-{-# LANGUAGE LambdaCase #-}
-
-module Argon.Formatters (bareTextFormatter, coloredTextFormatter)
-where
+module Argon.Formatters (bareTextFormatter, coloredTextFormatter) where
 
 import System.Console.ANSI
 import Text.Printf (printf)
 
-import Pipes
-import Pipes.Prelude qualified as P
-
 import Argon.Loc
 import Argon.Types
 
-bareTextFormatter :: MonadIO m => Pipe (FilePath, AnalysisResult) String m ()
+bareTextFormatter :: [(FilePath, AnalysisResult)] -> [String]
 bareTextFormatter =
   formatResult
     id
     ("\terror: " ++)
     (\(CC (l, func, cc)) -> printf "\t%s %s - %d" (locToString l) func cc)
 
-coloredTextFormatter :: MonadIO m => Pipe (FilePath, AnalysisResult) String m ()
+coloredTextFormatter :: [(FilePath, AnalysisResult)] -> [String]
 coloredTextFormatter =
   formatResult
     (\name -> bold ++ name ++ reset)
@@ -58,18 +52,14 @@ coloredRank c = printf "%s%s (%d)%s" (fore color) rank c reset
       | otherwise = (Red, "C")
 
 formatResult
-  :: MonadIO m
-  => (String -> String)
+  :: (String -> String)
   -- ^ The header formatter
   -> (String -> String)
   -- ^ The error formatter
   -> (ComplexityBlock -> String)
   -- ^ The single line formatter
-  -> Pipe (FilePath, AnalysisResult) String m ()
-formatResult header errorF singleF = for cat $ \case
-  (path, Left err) -> do
-    yield $ header path
-    yield $ errorF err
-  (path, Right rs) -> do
-    yield $ header path
-    each rs >-> P.map singleF
+  -> [(FilePath, AnalysisResult)]
+  -> [String]
+formatResult header errorF singleF = concatMap $ \case
+  (path, Left err) -> [header path, errorF err]
+  (path, Right rs) -> header path : (map singleF rs)

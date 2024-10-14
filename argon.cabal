@@ -72,17 +72,13 @@ library
     , aeson
     , ansi-terminal
     , base              >=4.7 && <5
+    , bytestring
     , cpphs
     , Cabal
     , directory
     , ghc-lib-parser
     , ghc-lib-parser-ex
     , Glob
-    , microlens
-    , pipes
-    , pipes-bytestring
-    , pipes-group
-    , pipes-safe
     , syb
 
   ghc-options: -threaded
@@ -98,8 +94,6 @@ executable argon
     , argon
     , base                  >=4.7 && <5
     , optparse-applicative
-    , pipes                 >=4.1
-    , pipes-safe            >=2.2
 
   ghc-options:        -threaded -rtsopts -with-rtsopts=-N
 
@@ -120,7 +114,6 @@ test-suite argon-test
     , filepath
     , ghc-lib-parser
     , hspec
-    , pipes
     , QuickCheck
 
   build-tool-depends: hspec-discover:hspec-discover >=2 && <3

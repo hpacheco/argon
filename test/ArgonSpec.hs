@@ -8,7 +8,6 @@ import           Data.Aeson          (encode)
 import           Data.List           (sort)
 import           GHC.Stack           (HasCallStack)
 import           Text.Printf         (printf)
-import           Pipes               (Producer, (>->), each)
 import           System.Console.ANSI (Color (..), ConsoleIntensity(BoldIntensity), setSGRCode,
                                       SGR(SetColor, SetConsoleIntensity),
                                       ConsoleLayer(Foreground), ColorIntensity(Dull))
@@ -18,7 +17,6 @@ import           Test.Hspec          (describe, it, Expectation, shouldBe,
                                       shouldContain, Spec, expectationFailure,
                                       shouldReturn)
 import           Test.QuickCheck     (Arbitrary, arbitrary, shrink, property, elements)
-import qualified Pipes.Prelude       as P
 import           Data.Foldable       (traverse_)
 
 import           Argon
@@ -61,18 +59,12 @@ shouldAnalyzeC :: HasCallStack => (String, Config) -> AnalysisResult -> Expectat
 shouldAnalyzeC (f, config) r = analyze config p `shouldReturn` (p, r)
     where p = path f
 
--- Disabled until I figure out why Argon.Walker tests fail only on Travis
-{-shouldProduceS :: Producer FilePath (SafeT IO) () -> [FilePath] -> Expectation-}
-{-shouldProduceS prod res = do-}
-    {-paths <- runSafeT $ P.toListM prod-}
-    {-paths `shouldBe` res-}
+-- shouldProduce :: (Eq a, Show a) => Producer a IO () -> [a] -> Expectation
+-- shouldProduce prod res = P.toListM prod >>= (`shouldBe` res)
 
-shouldProduce :: (Eq a, Show a) => Producer a IO () -> [a] -> Expectation
-shouldProduce prod res = P.toListM prod >>= (`shouldBe` res)
-
-produceError, produceResult :: Producer (FilePath, AnalysisResult) IO ()
-produceError  = each [("path/f.hs", Left "err!")]
-produceResult = each [("f.hs", Right [ CC (ones, "g", 3)
+produceError, produceResult :: [(FilePath, AnalysisResult)]
+produceError  = [("path/f.hs", Left "err!")]
+produceResult = [("f.hs", Right [ CC (ones, "g", 3)
                                      , CC (lo 2, "h", 5)
                                      , CC (lo 5, "f", 6)
                                      , CC (lo 7, "m", 10)
@@ -229,10 +221,10 @@ spec = do
     describe "Argon.Formatters" $ do
         describe "bareTextFormatter" $ do
             it "correctly formats errors" $
-                (produceError >-> bareTextFormatter) `shouldProduce`
+                (bareTextFormatter produceError) `shouldBe`
                     ["path/f.hs", "\terror: err!"]
             it "correctly formats results" $
-                (produceResult >-> bareTextFormatter) `shouldProduce`
+                (bareTextFormatter produceResult) `shouldBe`
                     [ "f.hs"
                     , "\t1:1 g - 3"
                     , "\t2:1 h - 5"
@@ -242,12 +234,12 @@ spec = do
                     ]
         describe "coloredTextFormatter" $ do
             it "correctly formats errors" $
-                (produceError >-> coloredTextFormatter) `shouldProduce`
+                (coloredTextFormatter produceError) `shouldBe`
                     [ bold ++ "path/f.hs" ++ reset
                     , "\t" ++ fore Red ++ "error" ++ reset ++ ": err!"
                     ]
             it "correctly formats results" $
-                (produceResult >-> coloredTextFormatter) `shouldProduce`
+                (coloredTextFormatter produceResult) `shouldBe`
                     [ bold ++ "f.hs" ++ reset
                     , printf "\t1:1 %sg%s - %sA (3)%s" (fore Cyan) reset
                                                        (fore Green) reset
