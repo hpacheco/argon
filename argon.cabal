@@ -11,6 +11,7 @@ maintainer:          michelelacchia@gmail.com
 copyright:           2015 Michele Lacchia
 category:            Development, Static Analysis
 build-type:          Simple
+tested-with:         GHC ==9.10.1
 description:
   Argon performs static analysis on your code in order to compute cyclomatic
   complexity. It is a quantitative measure of the number of linearly
