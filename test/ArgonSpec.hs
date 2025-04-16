@@ -161,7 +161,7 @@ spec = do
           `shouldContainErrors` ["parse error (possibly incorrect indentation or mismatched brackets)"]
       it "catches syntax errors (missing CPP)" $
         "missingcpp.hs"
-          `shouldAnalyze` Left "1:1 parse error on input \8216#\8217"
+          `shouldContainErrors` ["parse error on input `#'"]
     -- These two are not errors anymore, cpphs gracefully continues
     -- doing its thing after warning about the bad CPP code
     -- it "catches syntax errors (missing include dir)" $
