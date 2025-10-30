@@ -5,6 +5,7 @@ where
 
 import Data.List (nub)
 
+import Distribution.Utils.Path qualified as Dist
 import Distribution.PackageDescription qualified as Dist
 import Distribution.Simple.PackageDescription qualified as Dist
 import Distribution.Verbosity qualified as Dist
@@ -14,7 +15,7 @@ import Language.Haskell.Extension qualified as Dist
 --   extension names are read from the default-extensions field in the library
 --   section.
 parseExts :: FilePath -> IO [String]
-parseExts path = extract <$> Dist.readGenericPackageDescription Dist.silent path
+parseExts path = extract <$> Dist.readGenericPackageDescription Dist.silent Nothing (Dist.makeSymbolicPath path)
   where
     extract pkg = maybe [] (extFromBI . Dist.libBuildInfo . Dist.condTreeData) (Dist.condLibrary pkg)
 
