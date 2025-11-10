@@ -13,7 +13,7 @@ allFiles path = do
   isFile <- doesFileExist path
   if isFile
     then do
-      guard $ Glob.match "*.hs" path
+      guard $ Glob.match "**/*.hs" path
       pure [path]
     else hsFilesIn path
 

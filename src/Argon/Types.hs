@@ -39,7 +39,7 @@ type AnalysisResult = Either String [ComplexityBlock]
 data Argon = Argon
   { config :: Config
   , paths :: NonEmpty FilePath
-  }
+  } deriving (Show)
 
 -- | Type holding all the options passed from the command line.
 data Config = Config
@@ -53,7 +53,7 @@ data Config = Config
   -- ^ Additional include directories for the C preprocessor
   , outputMode :: OutputMode
   -- ^ Describe how the results should be exported.
-  }
+  } deriving (Show)
 
 -- | Type describing how the results should be exported.
 data OutputMode
